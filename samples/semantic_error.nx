@@ -1,0 +1,8 @@
+// Sample 3: Program with a SEMANTIC ERROR
+// Variable 'z' is used but never defined
+
+begin
+    a <- 5
+    b <- a + z
+    show b
+end

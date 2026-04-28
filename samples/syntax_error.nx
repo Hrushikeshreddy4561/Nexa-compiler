@@ -1,0 +1,12 @@
+// Sample 2: Program with a SYNTAX ERROR
+// The 'when' block is missing the closing bracket ']'
+
+begin
+    x <- 10
+    y <- 20
+
+    when (x < y) [
+        show x
+
+    show y
+end

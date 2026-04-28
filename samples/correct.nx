@@ -1,0 +1,19 @@
+begin
+
+math <- 40
+science <- 45
+total <- math + science
+show total
+when (total >= 50) [
+    show total
+] otherwise [
+    show 0
+]
+count <- 3
+repeat (count > 0) [
+    show count
+    count <- count - 1
+]
+show total
+
+end
