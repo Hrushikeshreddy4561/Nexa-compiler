@@ -4,6 +4,8 @@ Team Members: Nikhil, Abhinav, Varshith, Hrushikesh, Rajesh
 """
 
 import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from lexer import tokenize, LexerError
 from parser import Parser, ParserError, format_ast
 from semantic import SemanticAnalyser, SemanticError

@@ -208,49 +208,82 @@ class Parser:
             return ConditionNode(left, op, right, line)
         raise ParserError(f"Expected a comparison operator", self.current.line)
 
-def format_ast(node, indent=0):
-    prefix = "  " * indent
+def format_ast(node, prefix="", is_last=True):
+    """Prints AST as a proper tree using branch characters."""
     lines = []
 
     if isinstance(node, ProgramNode):
-        lines.append(f"{prefix}ProgramNode")
-        for stmt in node.statements:
-            lines.append(format_ast(stmt, indent + 1))
-    elif isinstance(node, AssignNode):
-        lines.append(f"{prefix}AssignNode: {node.name} <-")
-        lines.append(format_ast(node.expression, indent + 1))
-    elif isinstance(node, ShowNode):
-        lines.append(f"{prefix}ShowNode")
-        lines.append(format_ast(node.expression, indent + 1))
-    elif isinstance(node, WhenNode):
-        lines.append(f"{prefix}WhenNode")
-        lines.append(f"{prefix}  Condition:")
-        lines.append(format_ast(node.condition, indent + 2))
-        lines.append(f"{prefix}  If-Body:")
-        for s in node.if_body:
-            lines.append(format_ast(s, indent + 2))
-        if node.else_body:
-            lines.append(f"{prefix}  Otherwise:")
-            for s in node.else_body:
-                lines.append(format_ast(s, indent + 2))
-    elif isinstance(node, RepeatNode):
-        lines.append(f"{prefix}RepeatNode")
-        lines.append(f"{prefix}  Condition:")
-        lines.append(format_ast(node.condition, indent + 2))
-        lines.append(f"{prefix}  Body:")
-        for s in node.body:
-            lines.append(format_ast(s, indent + 2))
-    elif isinstance(node, BinOpNode):
-        lines.append(f"{prefix}BinOp: {node.op}")
-        lines.append(format_ast(node.left, indent + 1))
-        lines.append(format_ast(node.right, indent + 1))
-    elif isinstance(node, ConditionNode):
-        lines.append(f"{prefix}Condition: {node.op}")
-        lines.append(format_ast(node.left, indent + 1))
-        lines.append(format_ast(node.right, indent + 1))
-    elif isinstance(node, NumberNode):
-        lines.append(f"{prefix}Number: {node.value}")
-    elif isinstance(node, IdentifierNode):
-        lines.append(f"{prefix}Identifier: {node.name}")
+        lines.append("Program")
+        stmts = node.statements
+        for i, stmt in enumerate(stmts):
+            last = (i == len(stmts) - 1)
+            conn = "└── " if last else "├── "
+            ext  = "    " if last else "│   "
+            lines.append(conn + _label(stmt))
+            sub = _children_str(stmt, ext)
+            if sub:
+                lines.append(sub)
+        return "\n".join(lines)
 
+    return _label(node)
+
+
+def _label(node):
+    if isinstance(node, AssignNode):    return f"Assign: {node.name} <-"
+    if isinstance(node, ShowNode):      return "Show"
+    if isinstance(node, WhenNode):      return "When"
+    if isinstance(node, RepeatNode):    return "Repeat"
+    if isinstance(node, BinOpNode):     return f"BinOp [ {node.op} ]"
+    if isinstance(node, ConditionNode): return f"Condition [ {node.op} ]"
+    if isinstance(node, NumberNode):    return f"{node.value}"
+    if isinstance(node, IdentifierNode):return f"{node.name}"
+    return type(node).__name__
+
+
+def _children_str(node, prefix):
+    """Build the children lines for a given node."""
+    pairs = _kids(node)
+    if not pairs:
+        return ""
+    lines = []
+    for i, (lbl, child) in enumerate(pairs):
+        last = (i == len(pairs) - 1)
+        conn = "└── " if last else "├── "
+        ext  = "    " if last else "│   "
+
+        if isinstance(child, list):
+            lines.append(prefix + conn + lbl)
+            for j, item in enumerate(child):
+                l2 = (j == len(child) - 1)
+                c2 = "└── " if l2 else "├── "
+                e2 = "    " if l2 else "│   "
+                lines.append(prefix + ext + c2 + _label(item))
+                sub = _children_str(item, prefix + ext + e2)
+                if sub:
+                    lines.append(sub)
+        else:
+            lines.append(prefix + conn + _label(child))
+            sub = _children_str(child, prefix + ext)
+            if sub:
+                lines.append(sub)
     return "\n".join(lines)
+
+
+def _kids(node):
+    """Return (label, child) pairs for each node type."""
+    if isinstance(node, AssignNode):
+        return [("value", node.expression)]
+    if isinstance(node, ShowNode):
+        return [("expr", node.expression)]
+    if isinstance(node, WhenNode):
+        result = [("condition", node.condition)]
+        if node.if_body:  result.append(("if-body", node.if_body))
+        if node.else_body: result.append(("otherwise", node.else_body))
+        return result
+    if isinstance(node, RepeatNode):
+        return [("condition", node.condition), ("body", node.body)]
+    if isinstance(node, BinOpNode):
+        return [("left", node.left), ("right", node.right)]
+    if isinstance(node, ConditionNode):
+        return [("left", node.left), ("right", node.right)]
+    return []
